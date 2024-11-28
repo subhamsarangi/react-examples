@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>React with API Fetch</title>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+    <!-- Include Babel to transpile JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        div {
+            margin-bottom: 10px;
+        }
+        p {
+            color: green;
+        }
+        .quote {
+            font-style: italic;
+            margin-top: 10px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>React with Fetch API for Quotes</h1>
+
+    <div id="root"></div>
+
+    <!-- React JSX Code Below -->
+    <script type="text/babel">
+        const App = () => {
+            const [text, setText] = React.useState("");
+            const [quote, setQuote] = React.useState(null);
+            const [author, setAuthor] = React.useState(null);
+
+            const handleChange = (e) => {
+                setText(e.target.value);
+            };
+
+            const fetchQuote = async (searchText) => {
+                try {
+                    const response = await fetch(`http://api.quotable.io/search/quotes?query=${searchText}`);
+                    const data = await response.json();
+                    console.log(data.results);
+                    if (data.results.length != 0){
+                        setQuote(data.results[0].content);
+                        setAuthor(data.results[0].author);
+                    }
+                    else{
+                        setQuote("didnt find nothing for your query");
+                        setAuthor("");
+                    }
+
+                } catch (error) {
+                    console.error("Error fetching quote:", error);
+                    setQuote("Oops, something went wrong!");
+                }
+            };
+
+            // Use Effect to debounce API call
+            React.useEffect(() => {
+                if (text.trim() === "") {
+                    setQuote(null);
+                    return;
+                }
+
+                // Delay the API call by 1 second after the last input
+                const timeoutId = setTimeout(() => {
+                    fetchQuote(text);
+                }, 1000);
+
+                return () => clearTimeout(timeoutId); // Clean up on every new input
+            }, [text]);
+
+            return (
+                <div>
+                    <input 
+                        type="text" 
+                        value={text} 
+                        onChange={handleChange} 
+                        placeholder="Type something..." 
+                    />
+                    <p>You typed: {text}</p>
+                    {quote && <p className="quote">"{quote}" - {author}</p>}
+                </div>
+            );
+        };
+
+        // Render the app
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+
+</body>
+</html>

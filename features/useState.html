@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>React Form with Dirty and Touched States</title>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel to transpile JSX in the browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        form {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        div {
+            margin-bottom: 10px;
+        }
+        p {
+            color: green;
+        }
+    </style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script type="text/babel">
+    const MyForm = () => {
+        const [formData, setFormData] = React.useState({
+            username: '',
+            email: '',
+            password: ''
+        });
+        
+        // State for tracking dirty and touched states for fields
+        const [fieldStatus, setFieldStatus] = React.useState({
+            username: { dirty: false, touched: false },
+            email: { dirty: false, touched: false },
+            password: { dirty: false, touched: false }
+        });
+
+        const handleChange = (e) => {
+            const { name, value } = e.target;
+            setFormData({ ...formData, [name]: value });
+
+            setFieldStatus((prevState) => ({
+                ...prevState,
+                [name]: { ...prevState[name], dirty: true }
+            }));
+        };
+
+        const handleBlur = (e) => {
+            const { name } = e.target;
+            setFieldStatus((prevState) => ({
+                ...prevState,
+                [name]: { ...prevState[name], touched: true }
+            }));
+        };
+
+        return (
+            <form>
+                <div>
+                    <input
+                        type="text"
+                        name="username"
+                        value={formData.username}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                    />
+                    {fieldStatus.username.dirty && <p>The username has been modified.</p>}
+                    {fieldStatus.username.touched && <p>The username has been touched.</p>}
+                </div>
+
+                <div>
+                    <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                    />
+                    {fieldStatus.email.dirty && <p>The email has been modified.</p>}
+                    {fieldStatus.email.touched && <p>The email has been touched.</p>}
+                </div>
+
+                <div>
+                    <input
+                        type="password"
+                        name="password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                    />
+                    {fieldStatus.password.dirty && <p>The password has been modified.</p>}
+                    {fieldStatus.password.touched && <p>The password has been touched.</p>}
+                </div>
+
+                <button type="submit">Submit</button>
+            </form>
+        );
+    };
+
+    ReactDOM.render(<MyForm />, document.getElementById('root'));
+</script>
+
+</body>
+</html>

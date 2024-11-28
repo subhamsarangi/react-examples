@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>React example</title>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+    <!-- Include Babel to transpile JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        div {
+            margin-bottom: 10px;
+        }
+        p {
+            color: green;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>React</h1>
+
+    <div id="root"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY_HERE",
+            authDomain: "YOUR_AUTH_DOMAIN_HERE",
+            projectId: "YOUR_PROJECT_ID_HERE",
+            storageBucket: "YOUR_STORAGE_BUCKET_HERE",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID_HERE",
+            appId: "YOUR_APP_ID_HERE"
+        };
+    
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        window.db = db;
+        window.doc = doc;
+        window.getDoc = getDoc;
+        window.setDoc = setDoc;
+        window.updateDoc = updateDoc;
+    </script>
+    
+    <!-- React JSX Code Below -->
+    <script type="text/babel">
+        const CURRENT = "YOUR_DOC_ID";
+        async function getDocumentData(collectionName, docId) {
+            try {
+                const docRef = window.doc(window.db, collectionName, docId);
+                const docSnapshot = await window.getDoc(docRef);
+
+                if (docSnapshot.exists()) {
+                    return docSnapshot.data();
+                } else {
+                    console.log("No such document!");
+                    return null;
+                }
+            } catch (error) {
+                console.error("Error fetching document:", error);
+            }
+        }
+
+        async function saveDocumentData(collectionName, docId, data) {
+            try {
+                const docRef = window.doc(window.db, collectionName, docId);
+                await window.setDoc(docRef, data);
+            } catch (error) {
+                console.error("Error writing document:", error);
+            }
+        }
+
+        async function updateDocumentData(collectionName, docId, updatedData) {
+            try {
+                const docRef = window.doc(window.db, collectionName, docId);
+                await window.updateDoc(docRef, updatedData);
+            } catch (error) {
+                console.error("Error updating document:", error);
+            }
+        }
+        
+        const App = () => {
+            const [number, setNumber] = React.useState('');
+            const [result, setResult] = React.useState(0);
+            const [history, setHistory] = React.useState([]);
+            const [error, setError] = React.useState('');
+
+            // Fetch data from Firestore
+            React.useEffect(() => {
+                const fetchData = async () => {
+                    try {
+                        const data = await getDocumentData("calculations", CURRENT);
+                        if (data) {
+                            setResult(data.result);
+                            setHistory(data.history);
+                        }
+                    } catch (error) {
+                        console.error("Error fetching data:", error);
+                    }
+                };
+                fetchData();
+            }, []);
+
+            const handleChange = (e) => {
+                setNumber(e.target.value);
+            };
+
+            const handleAddToResult = async () => {
+                const validNumberPattern = /^[+-]?\d+(\.\d+)?$/;
+
+                if (validNumberPattern.test(number)) {
+                    const newResult = result + parseFloat(number);
+                    const newHistory = [...history, number];
+                    setResult(newResult);
+                    setHistory(newHistory);
+                    setNumber('');
+                    setError('');
+
+                    try {
+                        // save data to Firestore
+                        await saveDocumentData("calculations", CURRENT, {
+                            result: newResult,
+                            history: newHistory
+                        });
+                    } catch (error) {
+                        console.error("Error saving data:", error);
+                    }
+                } else {
+                    setError('Invalid input. Please enter a valid number (e.g., 12, +12, -12).');
+                    setNumber('');
+                }
+            };
+
+            const handleKeyPress = (e) => {
+                if (e.key === 'Enter') {
+                    handleAddToResult();
+                }
+            };
+
+            const handleHistoryClear = async () => {
+                setHistory([]);
+                setNumber('');
+                setResult(0);
+
+                try {
+                    // clear Firestore data
+                    await saveDocumentData("calculations", CURRENT, {
+                        result: 0,
+                        history: []
+                    });
+                } catch (error) {
+                    console.error("Error clearing data:", error);
+                }
+            };
+
+            return (
+                <div>
+                    <input 
+                        type="number" 
+                        value={number}
+                        onChange={handleChange}
+                        onKeyPress={handleKeyPress}
+                        placeholder="Type a number..." 
+                    />
+                    <button onClick={handleAddToResult}>Add</button>
+
+                    {/* Error message display */}
+                    {error && <p style={{ color: 'red' }}>{error}</p>}
+
+                    <p>Current result: {result}</p>
+                    {history.length > 0 && (
+                        <>
+                            <h3>History of Added Numbers:</h3>
+                            <p>{history.join(' + ')}</p>
+                            <button onClick={handleHistoryClear}>Clear</button>
+                        </>
+                    )}
+                </div>
+            );
+        };
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+    
+
+</body>
+</html>
